@@ -1,44 +1,39 @@
 #!/bin/bash
-# session-start.sh — inject compact session summary into Claude's system prompt
-# stdout is captured by Claude Code's SessionStart hook and added to the prompt
+# session-start.sh — inject compact session summary via JSON additionalContext
+# stdout is captured by Claude Code's SessionStart hook
 
 SESSION_DIR="$HOME/.claude/sessions"
 
-# --- Step 1: Try exact CWD match ---
-SAFE_NAME=$(echo "$PWD" | sed 's|/|_|g')
-COMPACT_FILE="$SESSION_DIR/$SAFE_NAME.compact"
+# --- Resolve compact file ---
+resolve_compact() {
+    local safe_name=$(echo "$PWD" | sed 's|/|_|g')
+    local exact="$SESSION_DIR/$safe_name.compact"
+    [ -f "$exact" ] && echo "$exact" && return
 
-load_session() {
-    local file="$1"
-    echo "---"
-    echo "## Session Resume"
-    echo ""
-    cat "$file"
-    echo ""
-    echo "---"
-    echo "IMPORTANT: Display the Session Resume block above as part of your first message."
-    echo "Keep it terse — just the key points. Then ask what to work on."
+    local basename=$(basename "$PWD")
+    if [ -d "$SESSION_DIR" ]; then
+        for f in "$SESSION_DIR"/*.compact; do
+            [ -f "$f" ] || continue
+            case "$(basename "$f" .compact)" in
+                *"$basename"*) echo "$f"; return ;;
+            esac
+        done
+    fi
 }
 
-if [ -f "$COMPACT_FILE" ]; then
-    load_session "$COMPACT_FILE"
-    exit 0
-fi
+COMPACT=$(resolve_compact)
+[ -z "$COMPACT" ] && exit 0
 
-# --- Step 2: Fuzzy fallback by directory basename ---
-BASENAME=$(basename "$PWD")
-if [ -d "$SESSION_DIR" ]; then
-    MATCH=$(ls "$SESSION_DIR"/*.compact 2>/dev/null | while read f; do
-        fname=$(basename "$f" .compact)
-        case "$fname" in
-            *"$BASENAME"*) echo "$f"; break ;;
-        esac
-    done)
-    if [ -n "$MATCH" ] && [ -f "$MATCH" ]; then
-        load_session "$MATCH"
-        exit 0
-    fi
-fi
+SUMMARY=$(cat "$COMPACT")
 
-# No session found — graceful fallback, output nothing
+# Output JSON additionalContext
+if command -v jq &>/dev/null; then
+    jq -n --arg text "$SUMMARY" '{
+        additionalContext: "Session Resume\n\n\($text)\n\n---\nDisplay the session resume above as your first message. Keep it terse — just the key points. Then ask what to work on."
+    }'
+else
+    # Fallback: construct JSON manually (limited escaping)
+    escaped=$(echo "$SUMMARY" | python3 -c "import json,sys; print(json.dumps(sys.stdin.read().strip()))" 2>/dev/null || echo "")
+    [ -n "$escaped" ] && printf '{"additionalContext": "Session Resume\\n\\n%s\\n\\n---\\nDisplay the session resume above as your first message. Keep it terse \\u2014 just the key points. Then ask what to work on."}\n' "$escaped"
+fi
 exit 0
