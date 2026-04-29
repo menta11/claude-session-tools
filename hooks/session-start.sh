@@ -8,8 +8,20 @@ SESSION_DIR="$HOME/.claude/sessions"
 SAFE_NAME=$(echo "$PWD" | sed 's|/|_|g')
 COMPACT_FILE="$SESSION_DIR/$SAFE_NAME.compact"
 
+load_session() {
+    local file="$1"
+    echo "---"
+    echo "## Session Resume"
+    echo ""
+    cat "$file"
+    echo ""
+    echo "---"
+    echo "IMPORTANT: Display the Session Resume block above as part of your first message."
+    echo "Keep it terse — just the key points. Then ask what to work on."
+}
+
 if [ -f "$COMPACT_FILE" ]; then
-    cat "$COMPACT_FILE"
+    load_session "$COMPACT_FILE"
     exit 0
 fi
 
@@ -23,7 +35,7 @@ if [ -d "$SESSION_DIR" ]; then
         esac
     done)
     if [ -n "$MATCH" ] && [ -f "$MATCH" ]; then
-        cat "$MATCH"
+        load_session "$MATCH"
         exit 0
     fi
 fi
