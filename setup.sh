@@ -28,11 +28,15 @@ mkdir -p "$CLAUDE_DIR/sessions"
 # --- 4. Register SessionStart hook in settings.json ---
 echo "[4/4] Registering hook in settings.json..."
 
-# Build the hook entry
+# Build the hook entry (correct format: matcher is string, hooks is array)
 HOOK_ENTRY='{
-  "matcher": {},
-  "command": "bash '$CLAUDE_DIR'/hooks/session-start.sh",
-  "description": "Load compact session summary for current project"
+  "matcher": "",
+  "hooks": [
+    {
+      "type": "command",
+      "command": "bash '$CLAUDE_DIR'/hooks/session-start.sh"
+    }
+  ]
 }'
 
 if [ ! -f "$SETTINGS_FILE" ]; then
