@@ -50,7 +50,7 @@
 ## 安装
 
 ```bash
-git clone https://github.com/<YOUR_USER>/claude-session-tools.git
+git clone https://github.com/menta11/claude-session-tools.git
 cd claude-session-tools
 bash setup.sh
 ```
@@ -80,7 +80,7 @@ bash setup.sh
 
 ```bash
 # 新机器上
-git clone https://github.com/<YOUR_USER>/claude-session-tools.git
+git clone https://github.com/menta11/claude-session-tools.git
 cd claude-session-tools
 bash setup.sh
 ```
